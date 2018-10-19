@@ -5,8 +5,6 @@ from player import *
 from items import *
 from gameparser import *
 
-
-
 def list_of_items(items):
     """This function takes a list of items (see items.py for the definition) and
     returns a comma-separated list of item names (as a string). For example:
@@ -223,15 +221,17 @@ def is_valid_exit(exits, chosen_exit):
     """
     return chosen_exit in exits
 
-
 def execute_go(direction):
     """This function, given the direction (e.g. "south") updates the current room
     to reflect the movement of the player if the direction is a valid exit
     (and prints the name of the room into which the player is
     moving). Otherwise, it prints "You cannot go there."
     """
-    if direction in current_room["exits"]:
-        current_room=current_room["exits"][direction]
+    global current_room # moving from room to room without knowing the current room and the list of other rooms is difficult, it turns out
+    global rooms
+    
+    if is_valid_exit(current_room["exits"],direction):
+        current_room = rooms[current_room["exits"][direction]]
     else:
         print("You cannot go there.")
 
@@ -242,22 +242,39 @@ def execute_take(item_id):
     there is no such item in the room, this function prints
     "You cannot take that."
     """
-    for i in items:
+    global current_room
+    present=False
+    for i in current_room["items"]:
         if i["id"]==item_id:
-            print(i)
-    if item_id in current_room["items"]:
-        current_room["items"].remove(item_id)
-        inventory.append(item_id)
+            print("item recognised")
+            present=True
+            
+    if present:
+        for item in current_room["items"]:
+            if item["id"]==item_id:
+                inventory.append(item)
+                current_room["items"].remove(item)
     else:
-        print("You cannot take that")
-    print("taking items doesn't work yet. i've only put this text here as a placeholder.")
+        print("You cannot take that, it is not here.")
 
 def execute_drop(item_id):
     """This function takes an item_id as an argument and moves this item from the
     player's inventory to list of items in the current room. However, if there is
     no such item in the inventory, this function prints "You cannot drop that."
     """
-    print("dropping items doesn't work yet. i've only put this text here as a placeholder.")
+    global current_room
+    present=False
+    for i in inventory:
+        if i["id"]==item_id:
+            print("item recognised")
+            present=True
+    if present:
+        for item in inventory:
+            if item["id"]==item_id:
+                current_room["items"].append(item)
+                inventory.remove(item)
+    else:
+        print("You cannot drop that, you do not have it.")
     
 
 def execute_command(command):
@@ -267,11 +284,14 @@ def execute_command(command):
     execute_take, or execute_drop, supplying the second word as the argument.
 
     """
-
+    global current_room
     if 0 == len(command):
         return
 
-    if command[0] == "go":
+    if command == ["drop","laptop"] and current_room["name"]=="the parking lot":
+        win()
+
+    elif command[0] == "go":
         if len(command) > 1:
             execute_go(command[1])
         else:
@@ -330,6 +350,10 @@ def move(exits, direction):
     # Next room to go to
     return rooms[exits[direction]]
 
+def win():
+    print("""congratulations you have dropped your laptop.\n\nyou win the insurance money and a crippling\nself-hatred and fear of dropping things in\nthe future.\n\nhttps://www.youtube.com/watch?v=1Bix44C1EzY""")
+    exit()
+    
 
 # This is the entry point of our program
 def main():
